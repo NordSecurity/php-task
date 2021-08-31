@@ -1,0 +1,45 @@
+version: '3'
+services:
+  php:
+    user: ${UID:-1000}
+    build:
+      context: .
+      dockerfile: docker/build/php-fpm/Dockerfile
+      args:
+        UID: ${UID:-1000}
+    volumes:
+      - .:/app
+      - ./docker/build/php-fpm/php.ini:/usr/local/etc/php/conf.d/docker-php.ini
+      - ./docker/build/php-fpm/xdebug.ini:/usr/local/etc/php/conf.d/docker-xdebug.ini
+    networks:
+      - task-nw
+    working_dir: /app
+
+  nginx:
+    image: nginx:1.15
+    volumes:
+      - .:/app
+      - ./docker/build/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - task-nw
+    ports:
+      - 127.0.0.1:${task_NGINX_PORT:-8000}:80
+
+  mysql:
+    image: mysql:5.7
+    volumes:
+      - ./docker/volume/mysql:/var/lib/mysql
+    networks:
+      - task-nw
+    ports:
+      - 127.0.0.1:${DOCKER_DB_PORT:-3307}:3306
+    environment:
+      MYSQL_DATABASEL: ${DATABASE_NAME:-task}
+      MYSQL_USER: ${DATABASE_USER:-task}
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD:-taskpw}
+      MYSQL_ROOT_PASSWORD: ${DATABASE_ROOT_PASSWORD:-root}
+
+networks:
+  task-nw:
+    driver: bridge
+
